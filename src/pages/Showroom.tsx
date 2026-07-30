@@ -308,7 +308,7 @@ export function Showroom() {
               return (
                 <Link
                   key={room.id}
-                  to={room.path}
+                  to={`/${clientId}${room.path === '/' ? '' : room.path}`}
                   className="inline-flex items-center gap-2 px-3 py-1.5 rounded text-[0.8rem] font-medium whitespace-nowrap shrink-0 transition-colors border bg-transparent border-[#222] text-[#888] hover:bg-[#111] hover:text-white"
                 >
                   {room.label} 

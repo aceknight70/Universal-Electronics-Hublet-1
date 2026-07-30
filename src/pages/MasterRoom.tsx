@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useClient } from '../contexts/ClientContext';
-import { motion } from 'motion/react';
+import { useNavigate, Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { CSVBulkUpload, ThemeLogoEditor, BrandManager, InvoiceDesignEditor, WatermarkEditor } from '../components/master/MasterSections';
 
 export function MasterRoom() {
   const { role, user } = useAuth();
-  const { activeBusiness, domain } = useClient();
+  const { activeBusiness, businesses, switchBusiness, refreshBusinesses } = useClient();
+  const navigate = useNavigate();
   const [newBizName, setNewBizName] = useState('');
-  const [newBizDomain, setNewBizDomain] = useState('');
   const [onboardingLoading, setOnboardingLoading] = useState(false);
   const [onboardingError, setOnboardingError] = useState('');
   const [onboardingSuccess, setOnboardingSuccess] = useState('');
@@ -25,55 +26,44 @@ export function MasterRoom() {
 
   const handleOnboard = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newBizName) return;
+    if (!newBizName.trim()) return;
     
     setOnboardingLoading(true);
     setOnboardingError('');
     setOnboardingSuccess('');
 
     try {
-      // 1. Auto-generate slug: lowercase, no spaces, no hyphens, no special chars
+      // Auto-generate slug
       const slug = newBizName.toLowerCase().replace(/[^a-z0-9]/g, '');
       if (!slug) throw new Error("Invalid business name");
 
-      // 2. Create manifest_clients row
+      // Insert into manifest_clients
       const { error: clientError } = await supabase
         .from('manifest_clients')
         .insert({
           name: newBizName,
           slug: slug,
-          theme: { primary_color: '#7db8df' }, // sensible default
+          theme: { primary_color: '#7db8df' },
           categories: [],
           invoice_settings: {}
         });
       
       if (clientError) throw new Error(`Failed to create business: ${clientError.message}`);
 
-      // 3. Grant Master access to current user
+      // Grant Master access to current user
       if (user?.id) {
-        const { error: masterError } = await supabase
+        await supabase
           .from('manifest_master')
           .insert({
             user_id: user.id,
             client_id: slug
           });
-        if (masterError) throw new Error(`Failed to grant Master access: ${masterError.message}`);
       }
 
-      // 4. Optionally create domain mapping
-      if (newBizDomain) {
-        const { error: domainError } = await supabase
-          .from('manifest_domain_config')
-          .insert({
-            domain: newBizDomain.toLowerCase().trim(),
-            client_id: slug
-          });
-        if (domainError) throw new Error(`Business created, but failed to map domain: ${domainError.message}`);
-      }
+      await refreshBusinesses();
 
-      setOnboardingSuccess(`Business "${newBizName}" created successfully with slug "${slug}". You can now access it.`);
+      setOnboardingSuccess(`Business "${newBizName}" created! It is immediately reachable at /${slug}`);
       setNewBizName('');
-      setNewBizDomain('');
     } catch (err: any) {
       setOnboardingError(err.message);
     } finally {
@@ -87,40 +77,69 @@ export function MasterRoom() {
         <div>
           <h1 className="text-3xl font-bold text-white flex items-center gap-3">
             👑 Master Room
-            <span className="text-sm font-normal text-[#8892a8] ml-2">Domain & Business Settings</span>
+            <span className="text-sm font-normal text-[#8892a8] ml-2">Single Deployment Storefront Management</span>
           </h1>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
           
           <div className="flex flex-col gap-6">
+            {/* Repurposed Storefront Quick Jump */}
             <div className="bg-[#111a24] border border-[#1e2a36] rounded-2xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
-              <h4 className="text-[0.75rem] uppercase tracking-wider text-[#8892a8] mb-4 font-medium">Domain Skin Control</h4>
+              <h4 className="text-[0.75rem] uppercase tracking-wider text-[#8892a8] mb-4 font-medium flex items-center justify-between">
+                <span>Storefront Quick Jump</span>
+                <span className="text-[#7db8df] font-mono text-[0.65rem] bg-[#0e1520] px-2 py-0.5 rounded border border-[#1a2634]">Path Navigation</span>
+              </h4>
               
               <div className="space-y-4">
                 <div>
-                  <label className="text-xs text-[#5a6a7a] uppercase mb-1 block">Active Domain</label>
-                  <div className="text-[#e6edf5] font-medium text-lg bg-[#0e1520] p-3 rounded-lg border border-[#1a2634]">{domain}</div>
-                </div>
-                
-                <div>
-                  <label className="text-xs text-[#5a6a7a] uppercase mb-1 block">Mapped Business</label>
-                  <div className="text-[#7db8df] font-medium text-lg bg-[#0f2a3b] p-3 rounded-lg border border-[#1a3a4b]">{activeBusiness?.name}</div>
+                  <label className="text-xs text-[#5a6a7a] uppercase mb-1 block">Active Business Context</label>
+                  <div className="text-[#7db8df] font-bold text-lg bg-[#0f2a3b] p-3 rounded-xl border border-[#1a3a4b] flex items-center justify-between">
+                    <span>{activeBusiness ? activeBusiness.name : 'Master Overview'}</span>
+                    <span className="font-mono text-xs text-[#8892a8]">{activeBusiness ? `/${activeBusiness.slug}` : '/'}</span>
+                  </div>
                 </div>
 
-                <div className="mt-4 p-4 bg-[#0f2a1a] border border-[#1a3a2a] rounded-xl text-sm text-[#7ddfb0] flex items-start gap-3">
-                  <span className="text-lg">🔄</span>
-                  <p>Use the chevron <strong>▼</strong> in the main header to switch the domain skin instantly.</p>
+                <div>
+                  <label className="text-xs text-[#5a6a7a] uppercase mb-2 block">Quick Jump Shortcuts</label>
+                  <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto pr-1">
+                    <Link 
+                      to="/" 
+                      className="flex items-center justify-between p-2.5 bg-[#0e1520] hover:bg-[#1a2634] border border-[#1a2634] rounded-xl text-xs text-white transition-colors"
+                    >
+                      <span className="font-bold text-[#7db8df]">🌐 Center Master Overview</span>
+                      <span className="font-mono text-[#5a6a7a]">/</span>
+                    </Link>
+                    {businesses.map(b => (
+                      <button 
+                        key={b.id}
+                        onClick={() => switchBusiness(b)}
+                        className={`flex items-center justify-between p-2.5 rounded-xl text-xs transition-colors border text-left ${
+                          b.slug === activeBusiness?.slug 
+                            ? 'bg-[#0f2a3b] text-[#7db8df] border-[#1a3a4b] font-bold' 
+                            : 'bg-[#0e1520] hover:bg-[#1a2634] text-white border-[#1a2634]'
+                        }`}
+                      >
+                        <span>{b.name}</span>
+                        <span className="font-mono text-[0.65rem] text-[#8892a8]">/{b.slug}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
 
+            {/* Onboarding Wizard (Domain step removed) */}
             <div className="bg-[#111a24] border border-[#1e2a36] rounded-2xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
               <h4 className="text-[0.75rem] uppercase tracking-wider text-[#8892a8] mb-4 font-medium">New Business Onboarding Wizard</h4>
               
               <form onSubmit={handleOnboard} className="space-y-4">
                 {onboardingError && <div className="text-[#df8f7d] bg-[#3b1a1a] border border-[#4a2a2a] p-3 rounded-lg text-sm">{onboardingError}</div>}
-                {onboardingSuccess && <div className="text-[#7ddfb0] bg-[#0f2a1a] border border-[#1a3a2a] p-3 rounded-lg text-sm">{onboardingSuccess}</div>}
+                {onboardingSuccess && (
+                  <div className="text-[#7ddfb0] bg-[#0f2a1a] border border-[#1a3a2a] p-3 rounded-lg text-sm space-y-2">
+                    <p>{onboardingSuccess}</p>
+                  </div>
+                )}
 
                 <div>
                   <label className="text-xs text-[#5a6a7a] uppercase mb-1 block">Business Name</label>
@@ -132,18 +151,9 @@ export function MasterRoom() {
                     placeholder="e.g. Adane House Electronics"
                     required
                   />
-                  <div className="text-[0.65rem] text-[#5a6a7a] mt-1">Slug will be auto-generated (e.g. adanehouse)</div>
-                </div>
-
-                <div>
-                  <label className="text-xs text-[#5a6a7a] uppercase mb-1 block">Domain Mapping (Optional)</label>
-                  <input 
-                    type="text" 
-                    value={newBizDomain}
-                    onChange={(e) => setNewBizDomain(e.target.value)}
-                    className="w-full bg-[#0e1520] text-white border border-[#1a2634] rounded-lg px-4 py-2 text-sm outline-none focus:border-[#7db8df]"
-                    placeholder="e.g. shop.adanehouse.com"
-                  />
+                  <div className="text-[0.65rem] text-[#5a6a7a] mt-1">
+                    Path slug: <code className="text-[#7db8df]">/{newBizName ? newBizName.toLowerCase().replace(/[^a-z0-9]/g, '') : 'slug'}</code>
+                  </div>
                 </div>
 
                 <button 
@@ -151,7 +161,7 @@ export function MasterRoom() {
                   disabled={onboardingLoading}
                   className="w-full bg-[#7ddfb0] text-[#0f2a1a] font-semibold py-2 rounded-lg mt-2 hover:bg-[#8eeabb] transition-colors disabled:opacity-50"
                 >
-                  {onboardingLoading ? 'Creating...' : 'Create Business'}
+                  {onboardingLoading ? 'Creating...' : 'Create Business Path'}
                 </button>
               </form>
             </div>

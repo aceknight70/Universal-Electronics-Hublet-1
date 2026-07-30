@@ -51,6 +51,8 @@ export function Header() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const basePath = activeBusiness ? `/${activeBusiness.slug}` : '';
+
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-40 bg-[#0a0a0a] border-b border-[#222]">
@@ -58,36 +60,50 @@ export function Header() {
           {/* Row 1: Identity & Controls */}
           <div className="flex items-center justify-between px-4 py-3">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-[#1a1a1a] border border-[#333] flex items-center justify-center font-bold text-sm text-white flex-shrink-0">
+              <Link to="/" className="w-8 h-8 rounded-lg bg-[#1a1a1a] border border-[#333] flex items-center justify-center font-bold text-sm text-[#7db8df] flex-shrink-0 hover:border-[#7db8df] transition-colors" title="Master Overview">
                 UE
-              </div>
+              </Link>
               
               <div className="relative flex items-center gap-1" ref={dropdownRef}>
-                <Link to="/" className="text-lg font-semibold text-white tracking-tight whitespace-nowrap hover:text-[#7db8df] transition-colors">
-                  {activeBusiness?.name || 'Loading...'}
+                <Link to={activeBusiness ? `/${activeBusiness.slug}` : '/'} className="text-lg font-semibold text-white tracking-tight whitespace-nowrap hover:text-[#7db8df] transition-colors">
+                  {activeBusiness ? activeBusiness.name : 'Universal Electronics Overview'}
                 </Link>
                 
                 {config.chevronVisible && (
                   <button 
                     onClick={() => setDropdownOpen(!dropdownOpen)}
                     className="ml-1 p-1 rounded-md text-[#888] hover:text-white transition-colors"
+                    title="Jump to Business Storefront"
                   >
                     <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
                 )}
 
                 {dropdownOpen && config.chevronVisible && (
-                  <div className="absolute top-full mt-2 left-0 min-w-[240px] bg-[#111] border border-[#333] rounded-xl shadow-2xl overflow-hidden backdrop-blur-sm z-50">
+                  <div className="absolute top-full mt-2 left-0 min-w-[260px] bg-[#111] border border-[#333] rounded-xl shadow-2xl overflow-hidden backdrop-blur-sm z-50 p-1">
+                    <div className="px-3 py-2 text-[0.65rem] font-bold uppercase tracking-wider text-[#5a6a7a] border-b border-[#222]">
+                      Quick Jump to Storefront
+                    </div>
+                    <button
+                      onClick={() => { switchBusiness({ id: 'overview', name: 'Master Overview', slug: '', color: '#7db8df' }); setDropdownOpen(false); }}
+                      className={`w-full text-left flex items-center gap-3 px-3 py-2 text-xs rounded-lg transition-colors my-0.5 ${!activeBusiness ? 'bg-[#222] text-white font-bold' : 'text-[#888] hover:bg-[#1a1a1a] hover:text-white'}`}
+                    >
+                      <span className="w-2 h-2 rounded-full flex-shrink-0 bg-[#7db8df]" />
+                      🌐 Master Overview (Center Room)
+                    </button>
                     {businesses.map(b => {
                       const isActive = b.id === activeBusiness?.id;
                       return (
                         <button
                           key={b.id}
                           onClick={() => { switchBusiness(b); setDropdownOpen(false); }}
-                          className={`w-full text-left flex items-center gap-3 px-4 py-3 text-sm transition-colors ${isActive ? 'bg-[#222] text-white' : 'text-[#888] hover:bg-[#1a1a1a] hover:text-white'}`}
+                          className={`w-full text-left flex items-center justify-between px-3 py-2 text-xs rounded-lg transition-colors my-0.5 ${isActive ? 'bg-[#0f2a3b] text-[#7db8df] font-bold border border-[#1a3a4b]' : 'text-[#888] hover:bg-[#1a1a1a] hover:text-white'}`}
                         >
-                          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${isActive ? 'bg-white' : 'bg-[#444]'}`} />
-                          {b.name}
+                          <span className="flex items-center gap-2">
+                            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${isActive ? 'bg-[#7db8df]' : 'bg-[#444]'}`} />
+                            {b.name}
+                          </span>
+                          <span className="font-mono text-[0.65rem] text-[#5a6a7a]">/{b.slug}</span>
                         </button>
                       );
                     })}
@@ -127,25 +143,28 @@ export function Header() {
 
           {/* Row 2: Quick Access */}
           <div className="flex items-center gap-2 px-4 py-2 overflow-x-auto no-scrollbar border-t border-[#1a1a1a]">
-            <Link to="/gallery" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#1a1a1a] border border-[#333] text-sm text-white hover:bg-[#222] whitespace-nowrap shrink-0 transition-colors">
+            <Link to="/" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#1a1a1a] border border-[#333] text-sm text-[#7db8df] hover:bg-[#222] whitespace-nowrap shrink-0 transition-colors font-medium">
+              <span>🌐</span> Center Overview
+            </Link>
+            <Link to={`${basePath}/gallery`} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#1a1a1a] border border-[#333] text-sm text-white hover:bg-[#222] whitespace-nowrap shrink-0 transition-colors">
               <span>📷</span> Gallery
             </Link>
-            <Link to="/videos" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#1a1a1a] border border-[#333] text-sm text-white hover:bg-[#222] whitespace-nowrap shrink-0 transition-colors">
+            <Link to={`${basePath}/videos`} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#1a1a1a] border border-[#333] text-sm text-white hover:bg-[#222] whitespace-nowrap shrink-0 transition-colors">
               <span>🎬</span> Video Gallery
             </Link>
-            <Link to="/spotlight" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#1a1a1a] border border-[#333] text-sm text-white hover:bg-[#222] whitespace-nowrap shrink-0 transition-colors">
+            <Link to={`${basePath}/spotlight`} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#1a1a1a] border border-[#333] text-sm text-white hover:bg-[#222] whitespace-nowrap shrink-0 transition-colors">
               <span>🔮</span> Business Spotlight
             </Link>
-            <Link to="/channels" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#1a1a1a] border border-[#333] text-sm text-white hover:bg-[#222] whitespace-nowrap shrink-0 transition-colors">
+            <Link to={`${basePath}/channels`} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#1a1a1a] border border-[#333] text-sm text-white hover:bg-[#222] whitespace-nowrap shrink-0 transition-colors">
               <span>📺</span> Channels
             </Link>
             {(role === 'master' || role === 'manager') && (
-              <Link to="/sheet-manager" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#0f2a3b] border border-[#1a3a4b] text-sm text-[#7db8df] hover:bg-[#1a3a5c] whitespace-nowrap shrink-0 transition-colors">
+              <Link to={`${basePath}/sheet-manager`} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#0f2a3b] border border-[#1a3a4b] text-sm text-[#7db8df] hover:bg-[#1a3a5c] whitespace-nowrap shrink-0 transition-colors">
                 <span>📑</span> Sheet Manager
               </Link>
             )}
             {role === 'master' && (
-              <Link to="/master" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#3b0f2a] border border-[#4b1a3a] text-sm text-[#df7dc8] hover:bg-[#5c1a45] whitespace-nowrap shrink-0 transition-colors">
+              <Link to={`${basePath}/master`} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#3b0f2a] border border-[#4b1a3a] text-sm text-[#df7dc8] hover:bg-[#5c1a45] whitespace-nowrap shrink-0 transition-colors">
                 <span>👑</span> Master Room
               </Link>
             )}
