@@ -120,15 +120,19 @@ export function CSVBulkUpload() {
     const clientId = activeBusiness?.slug || 'ofrank';
 
     try {
+      const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       localStorage.setItem(`app_saved_csv_text_${clientId}`, pastedText);
       localStorage.setItem('app_saved_csv_text', pastedText);
+      localStorage.setItem(`app_saved_csv_timestamp_${clientId}`, nowTime);
+      localStorage.setItem('app_saved_csv_timestamp', nowTime);
 
       const result = await saveCatalogProducts(parsedRows, clientId);
 
       setIsSaved(true);
       setLastSavedTime(result.timestamp);
       
-      setUploadStatus(`🎉 Saved & committed ${result.count} items directly to database for client "${clientId}"! Showroom updated!`);
+      setUploadStatus(`🎉 Saved ${result.count} items to catalog for client "${clientId}"! Showroom updated!`);
+      alert(`🎉 CSV catalog saved successfully! ${result.count} items are now live in the Showroom for client "${clientId}".`);
     } catch (e: any) {
       alert(`Error saving to catalog: ${e.message || e}`);
       setUploadStatus(`❌ Error saving to catalog: ${e.message || e}`);
@@ -189,6 +193,7 @@ export function CSVBulkUpload() {
 
   const handleClear = () => {
     if (window.confirm('Are you sure you want to clear current text and saved CSV data?')) {
+      const clientId = activeBusiness?.slug || 'ofrank';
       setPastedText('');
       setParsedRows([]);
       setItemCount(null);
@@ -196,9 +201,14 @@ export function CSVBulkUpload() {
       setFileName(null);
       setIsSaved(false);
       setLastSavedTime(null);
+      localStorage.removeItem(`app_saved_csv_text_${clientId}`);
+      localStorage.removeItem(`app_saved_csv_products_${clientId}`);
+      localStorage.removeItem(`app_saved_csv_timestamp_${clientId}`);
       localStorage.removeItem('app_saved_csv_text');
+      localStorage.removeItem('app_saved_csv_products');
       localStorage.removeItem('app_saved_csv_rows');
       localStorage.removeItem('app_saved_csv_timestamp');
+      window.dispatchEvent(new CustomEvent('catalog_updated', { detail: { clientId } }));
     }
   };
 
