@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
-import { Building2, Search, Plus, ExternalLink, ShieldCheck, Sparkles, Image, BookOpen, Crown } from 'lucide-react';
+import { Building2, Search, Plus, ExternalLink, ShieldCheck, Sparkles, Image, BookOpen, Crown, Copy, Check, Link2 } from 'lucide-react';
 
 export function MasterOverview() {
   const { businesses, refreshBusinesses } = useClient();
@@ -16,6 +16,17 @@ export function MasterOverview() {
   const [onboardingLoading, setOnboardingLoading] = useState(false);
   const [onboardingError, setOnboardingError] = useState('');
   const [onboardingSuccess, setOnboardingSuccess] = useState('');
+  const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
+
+  const handleCopyStoreLink = (slug: string) => {
+    const shareUrl = `${window.location.origin}/?store=${slug}`;
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      setCopiedSlug(slug);
+      setTimeout(() => setCopiedSlug(null), 2200);
+    }).catch(err => {
+      console.error('Failed to copy link:', err);
+    });
+  };
 
   const filteredBusinesses = businesses.filter(b => 
     b.name.toLowerCase().includes(search.toLowerCase()) || 
@@ -148,29 +159,42 @@ export function MasterOverview() {
                       {b.name}
                     </h3>
                     <p className="text-xs text-[#8892a8] mb-4">
-                      Path: <span className="font-mono text-[#e6edf5]">/{b.slug}</span>
+                      Share Link: <code className="font-mono text-[#7db8df]">?store={b.slug}</code>
                     </p>
                   </div>
 
                   {/* Actions */}
                   <div className="grid grid-cols-2 gap-2 pt-3 border-t border-[#1e2a36]">
                     <button 
-                      onClick={() => navigate(`/${b.slug}`)}
+                      onClick={() => navigate(`/?store=${b.slug}`)}
                       className="bg-[#0f2a3b] hover:bg-[#1a3a5c] text-[#7db8df] border border-[#1a3a4b] px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
                     >
                       <ExternalLink className="w-3.5 h-3.5" /> Storefront
+                    </button>
+                    <button 
+                      onClick={() => handleCopyStoreLink(b.slug)}
+                      className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors border ${
+                        copiedSlug === b.slug 
+                          ? 'bg-[#0f2a1a] text-[#7ddfb0] border-[#1a3a2a]' 
+                          : 'bg-[#162534] hover:bg-[#1e3246] text-[#7db8df] border-[#25384c]'
+                      }`}
+                      title={`Copy share link: ${window.location.origin}/?store=${b.slug}`}
+                    >
+                      {copiedSlug === b.slug ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-[#7ddfb0]" /> Copied! ✓
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5" /> Copy Store Link
+                        </>
+                      )}
                     </button>
                     <button 
                       onClick={() => navigate(`/${b.slug}/gallery`)}
                       className="bg-[#1a1a1a] hover:bg-[#262626] text-[#e6edf5] border border-[#333] px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
                     >
                       <Image className="w-3.5 h-3.5" /> Gallery
-                    </button>
-                    <button 
-                      onClick={() => navigate(`/${b.slug}/workbook`)}
-                      className="bg-[#1a1a1a] hover:bg-[#262626] text-[#e6edf5] border border-[#333] px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
-                    >
-                      <BookOpen className="w-3.5 h-3.5" /> Workbook
                     </button>
                     <button 
                       onClick={() => navigate(`/${b.slug}/master`)}
@@ -237,19 +261,19 @@ export function MasterOverview() {
           {/* Quick Info Card */}
           <div className="bg-[#0f1d2a] border border-[#1e2a36] rounded-2xl p-5 text-xs text-[#8892a8] space-y-3">
             <div className="flex items-center gap-2 text-sm font-semibold text-[#7db8df]">
-              <Sparkles className="w-4 h-4" /> Path-Based Single Deployment
+              <Sparkles className="w-4 h-4" /> Shareable Query Store Links
             </div>
             <p>
-              Every business lives under its own path URL:
+              Business storefronts can be shared and opened fresh (in browser tabs or inside iframe Hublets) with zero 404 risk using query parameters or path URLs:
             </p>
             <ul className="space-y-1 font-mono text-[0.7rem] text-[#e6edf5] list-disc list-inside">
+              <li>/?store=ofrank <span className="text-[#7ddfb0] font-sans text-[0.65rem]">(Zero 404 Shareable Link)</span></li>
+              <li>/?store=allsufficiency</li>
               <li>/ofrank</li>
               <li>/allsufficiency</li>
-              <li>/adanehouse</li>
-              <li>/ugomenz</li>
             </ul>
             <p className="text-[0.65rem] text-[#5a6a7a]">
-              Navigating inside a business preserves its slug in all room tabs and links.
+              Clicking "Copy Store Link" generates the exact direct URL to paste into external iframe Hublets or new browser tabs.
             </p>
           </div>
 

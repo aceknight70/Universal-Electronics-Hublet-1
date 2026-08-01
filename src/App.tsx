@@ -23,7 +23,7 @@ const Placeholder = ({ title }: { title: string }) => (
 );
 
 function MainApp() {
-  const { loading, error } = useClient();
+  const { activeBusiness, loading, error } = useClient();
 
   if (loading) {
     return (
@@ -51,8 +51,8 @@ function MainApp() {
   return (
     <Layout>
       <Routes>
-        {/* Master Overview at root "/" */}
-        <Route path="/" element={<MasterOverview />} />
+        {/* Master Overview at root "/" if no store query param, or Showroom if ?store= is present */}
+        <Route path="/" element={activeBusiness ? <Showroom /> : <MasterOverview />} />
 
         {/* Business Storefront Routes (/:clientId/*) */}
         <Route path="/:clientId" element={<Showroom />} />

@@ -53,13 +53,20 @@ export function ClientProvider({ children }: { children: ReactNode }) {
         setLoading(true);
         setError(null);
 
+        // Check for ?store= query parameter first (e.g. /?store=ofrank)
+        const searchParams = new URLSearchParams(location.search);
+        const queryStore = searchParams.get('store')?.toLowerCase();
+
         // Extract first segment from URL path
         // e.g. "/ofrank/gallery" -> "ofrank", "/" -> ""
         const segments = location.pathname.split('/').filter(Boolean);
         const pathSlug = segments[0]?.toLowerCase();
 
-        // If at root URL "/", no business is selected; Master Overview page will render
-        if (!pathSlug) {
+        // Target slug comes from ?store= query param if present, else first path segment
+        const targetSlug = queryStore || pathSlug;
+
+        // If no business slug in path or query, no business is selected; Master Overview page will render
+        if (!targetSlug) {
           setActiveBusiness(null);
           setError(null);
           setLoading(false);
@@ -70,12 +77,12 @@ export function ClientProvider({ children }: { children: ReactNode }) {
         const { data: clientData, error: clientError } = await supabase
           .from('manifest_clients')
           .select('*')
-          .eq('slug', pathSlug)
+          .eq('slug', targetSlug)
           .single();
 
         if (clientError || !clientData) {
           setActiveBusiness(null);
-          setError(`Business not found: No storefront registered at /${pathSlug}`);
+          setError(`Business not found: No storefront registered for "${targetSlug}"`);
         } else {
           setActiveBusiness({
             id: clientData.id,
@@ -94,7 +101,7 @@ export function ClientProvider({ children }: { children: ReactNode }) {
     }
 
     resolveClientFromPath();
-  }, [location.pathname]);
+  }, [location.pathname, location.search]);
 
   const switchBusiness = (business: Business) => {
     setActiveBusiness(business);
