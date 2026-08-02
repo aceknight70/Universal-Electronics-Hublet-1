@@ -14,7 +14,7 @@ async function check() {
       brand: item.brand,
       category: item.category
     });
-    console.log(error);
+    console.log('Catalog Insert Error:', error);
   }
 }
 check();
