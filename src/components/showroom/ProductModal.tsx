@@ -142,7 +142,7 @@ export function ProductModal({ product, isOpen, onClose }: { product: any, isOpe
               {/* Photo Carousel Area */}
               <div className="w-full md:w-3/5 bg-black relative flex flex-col items-center justify-center min-h-[300px] border-b md:border-b-0 md:border-r border-[#333]">
                 {hasCurrentPhoto ? (
-                  <img src={photos[currentPhotoKey]!} alt={`${product.name} ${PHOTO_LABELS[currentPhotoKey]}`} className="w-full h-full object-contain" />
+                  <img src={photos[currentPhotoKey]!} alt={`${product.product_name || product.name} ${PHOTO_LABELS[currentPhotoKey]}`} className="w-full h-full object-contain" />
                 ) : (
                   <div className="flex flex-col items-center justify-center text-[#555] p-8 text-center">
                     <ImageIcon className="w-16 h-16 mb-4 opacity-50" />
@@ -197,13 +197,20 @@ export function ProductModal({ product, isOpen, onClose }: { product: any, isOpe
               {/* Details Area */}
               <div className="w-full md:w-2/5 p-6 md:p-8 flex flex-col">
                 <div className="text-xs font-bold uppercase tracking-wider text-[#7db8df] mb-2">{product.category}</div>
-                <h2 className="text-2xl font-bold text-white mb-1">{product.name}</h2>
+                <h2 className="text-2xl font-bold text-white mb-1">{product.product_name || product.name}</h2>
                 <div className="text-[#888] mb-6">{product.brand}</div>
                 
-                <div className="space-y-4 flex-grow text-sm text-[#ccc]">
-                  <p><strong>Specifications:</strong> Detailed specs would appear here, pulled from the shared catalog or overridden locally.</p>
-                  <p><strong>SKU:</strong> MOCK-SKU-1234</p>
-                  <p><strong>Availability:</strong> In Stock</p>
+                <div className="space-y-4 flex-grow text-sm text-[#ccc] whitespace-pre-wrap overflow-y-auto max-h-[40vh] pr-2">
+                  {product.spec && (
+                    <div><strong>Specifications & Details:</strong><br/><span className="text-[#aaa]">{product.spec}</span></div>
+                  )}
+                  {product.sn && (
+                    <div><strong>SN / Index:</strong> {product.sn}</div>
+                  )}
+                  {product.product_code && (
+                    <div><strong>Code / SKU:</strong> {product.product_code}</div>
+                  )}
+                  <div><strong>Availability:</strong> {product.in_stock ? 'In Stock' : 'Out of Stock'}</div>
                 </div>
 
                 <div className="mt-8 pt-6 border-t border-[#333] flex items-end justify-between">
@@ -231,15 +238,25 @@ export function ProductModal({ product, isOpen, onClose }: { product: any, isOpe
                   <div className="space-y-4">
                     <div>
                       <label className="block text-xs text-[#888] mb-1">Product Name</label>
-                      <input type="text" defaultValue={product.name} className="w-full bg-[#222] border border-[#444] rounded p-2 text-white text-sm" />
+                      <input type="text" defaultValue={product.product_name || product.name} className="w-full bg-[#222] border border-[#444] rounded p-2 text-white text-sm" />
+                    </div>
+                    <div className="flex gap-4">
+                      <div className="flex-1">
+                        <label className="block text-xs text-[#888] mb-1">SN / No.</label>
+                        <input type="text" defaultValue={product.sn || ''} className="w-full bg-[#222] border border-[#444] rounded p-2 text-white text-sm" />
+                      </div>
+                      <div className="flex-[2]">
+                        <label className="block text-xs text-[#888] mb-1">Product Code / SKU</label>
+                        <input type="text" defaultValue={product.product_code || ''} className="w-full bg-[#222] border border-[#444] rounded p-2 text-white text-sm" />
+                      </div>
                     </div>
                     <div>
                       <label className="block text-xs text-[#888] mb-1">Price</label>
                       <input type="text" defaultValue={product.price} className="w-full bg-[#222] border border-[#444] rounded p-2 text-white text-sm" />
                     </div>
                     <div>
-                      <label className="block text-xs text-[#888] mb-1">Specifications</label>
-                      <textarea rows={4} className="w-full bg-[#222] border border-[#444] rounded p-2 text-white text-sm" defaultValue="Mock specifications..."></textarea>
+                      <label className="block text-xs text-[#888] mb-1">Specifications & Details</label>
+                      <textarea rows={6} className="w-full bg-[#222] border border-[#444] rounded p-2 text-white text-sm" defaultValue={product.spec || ''}></textarea>
                     </div>
                   </div>
                 </div>

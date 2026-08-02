@@ -19,6 +19,15 @@ export function CSVBulkUpload() {
   const [pageSize, setPageSize] = useState<number>(15);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [saveProgress, setSaveProgress] = useState<{ processed: number, total: number } | null>(null);
+
+  useEffect(() => {
+    const handleProgress = (e: any) => {
+      setSaveProgress(e.detail);
+    };
+    window.addEventListener('catalog_save_progress', handleProgress);
+    return () => window.removeEventListener('catalog_save_progress', handleProgress);
+  }, []);
 
   // Filter rows by search term
   const filteredRows = parsedRows.filter((row) => {
@@ -131,13 +140,14 @@ export function CSVBulkUpload() {
       setIsSaved(true);
       setLastSavedTime(result.timestamp);
       
-      setUploadStatus(`🎉 Saved ${result.count} items to catalog for client "${clientId}"! Showroom updated!`);
-      alert(`🎉 CSV catalog saved successfully! ${result.count} items are now live in the Showroom for client "${clientId}".`);
+      setUploadStatus(`🎉 Saved ${result.count} items to catalog for client "${clientId}"! Showroom updated!${result.dbErrorCount > 0 ? ` (${result.dbErrorCount} DB errors)` : ''}`);
+      alert(`🎉 CSV catalog saved successfully! ${result.count} items processed.${result.dbErrorCount > 0 ? ` Note: ${result.dbErrorCount} items failed to save to the database, but are cached locally.` : ''}`);
     } catch (e: any) {
       alert(`Error saving to catalog: ${e.message || e}`);
       setUploadStatus(`❌ Error saving to catalog: ${e.message || e}`);
     } finally {
       setIsSaving(false);
+      setSaveProgress(null);
     }
   };
 
@@ -160,6 +170,8 @@ export function CSVBulkUpload() {
     if (file) {
       processFile(file);
     }
+    // Clear input so the same file can be selected again
+    e.target.value = '';
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -229,10 +241,10 @@ export function CSVBulkUpload() {
 
   const downloadTemplate = () => {
     const csvContent = "data:text/csv;charset=utf-8," 
-      + "Product Name,Brand,Category,Price,Stock,RoomTag\n"
-      + "43-inch Smart UHD TV,Samsung,Televisions,250000,10,arcade\n"
-      + "Double Door Fridge 200L,Bruhm,Refrigerators,310000,5,display_floor\n"
-      + "Inverter Air Conditioner 1.5HP,Daikin,Air Conditioners,420000,8,hot_deal\n";
+      + "SN,Product Code,Product Name,Brand,Category,Price,Stock,RoomTag,Technical Specs,Extra Details\n"
+      + "1,SMG-TV-43,43-inch Smart UHD TV,Samsung,Televisions,250000,10,arcade,4K HDR,Smart Hub\n"
+      + "2,BRH-FR-200,Double Door Fridge 200L,Bruhm,Refrigerators,310000,5,display_floor,Frost Free,Silver Finish\n"
+      + "3,DKN-AC-15,Inverter Air Conditioner 1.5HP,Daikin,Air Conditioners,420000,8,hot_deal,R32 Gas,Copper Condenser\n";
     
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
@@ -351,7 +363,7 @@ export function CSVBulkUpload() {
                   rows={6}
                   value={pastedText}
                   onChange={(e) => handlePastedTextChange(e.target.value)}
-                  placeholder={"Paste your CSV text or copied spreadsheet rows here...\n\nExample:\nProduct Name,Brand,Category,Price,Stock,RoomTag\n43-inch Smart TV,Samsung,Televisions,250000,10,arcade\nDouble Door Fridge,Bruhm,Refrigerators,310000,5,display_floor"}
+                  placeholder={"Paste your CSV text or copied spreadsheet rows here...\n\nExample:\nSN,Product Code,Product Name,Brand,Category,Price,Stock,RoomTag,Technical Specs,Extra Details\n1,BRH-BAS-09RCEW,1 HP NORMAL 9000BTU Split AC,Bruhm,Air Conditioners,420000,10,arcade,R410 Gas With Kit,Extra info here"}
                   className="w-full bg-[#0e1520] text-[#e6edf5] border border-[#1a2634] rounded-xl p-3.5 text-xs outline-none focus:border-[#7db8df] font-mono leading-relaxed placeholder:text-[#3a4a5a]"
                 />
               </div>
@@ -485,9 +497,14 @@ export function CSVBulkUpload() {
                   <button
                     type="button"
                     onClick={handleSaveToCatalog}
-                    className="flex-1 bg-[#25855a] hover:bg-[#2f9e6d] text-white font-bold py-3 px-4 rounded-xl text-xs transition-colors cursor-pointer shadow-md flex items-center justify-center gap-2"
+                    disabled={isSaving}
+                    className={`flex-1 font-bold py-3 px-4 rounded-xl text-xs transition-colors shadow-md flex items-center justify-center gap-2 ${
+                      isSaving 
+                        ? 'bg-[#1a3a2a] text-[#8892a8] cursor-not-allowed' 
+                        : 'bg-[#25855a] hover:bg-[#2f9e6d] text-white cursor-pointer'
+                    }`}
                   >
-                    <span>💾</span> Save CSV & Update Catalog ({parsedRows.length} items)
+                    <span>💾</span> {isSaving ? (saveProgress ? `Saving... ${saveProgress.processed}/${saveProgress.total}` : 'Saving...') : `Save CSV & Update Catalog (${parsedRows.length} items)`}
                   </button>
                   <button
                     type="button"
@@ -662,6 +679,7 @@ export function WatermarkEditor() {
       setUrl(base64);
     };
     reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   const handleSave = async () => {

@@ -125,10 +125,23 @@ function CategoryRow({ category, products, autoScroll, onProductClick }: { key?:
               )}
             </div>
             <div className="font-semibold text-[0.95rem] text-white leading-tight mb-1">{p.product_name}</div>
+            <div className="flex gap-2 mb-1">
+              {p.sn && (
+                <span className="text-[0.65rem] bg-[#333] text-[#ddd] px-1.5 py-0.5 rounded font-mono">SN: {p.sn}</span>
+              )}
+              {p.product_code && (
+                <span className="text-[0.75rem] text-[#7db8df] font-mono">{p.product_code}</span>
+              )}
+            </div>
             <div className="text-[0.75rem] text-[#888] flex items-center justify-between">
               <span>{p.brand}</span>
               {p.in_stock ? <span className="text-[0.65rem] text-[#7db8df]">In Stock</span> : <span className="text-[0.65rem] text-[#ef4444]">Out of Stock</span>}
             </div>
+            {p.spec && (
+              <div className="text-[0.7rem] text-[#aaa] mt-2 line-clamp-2 leading-relaxed">
+                {p.spec}
+              </div>
+            )}
             {p.tag && (
               <span className="inline-block text-[0.6rem] font-bold uppercase tracking-[0.05em] bg-[#222] text-[#ccc] px-2 py-0.5 rounded-sm mt-2 self-start border border-[#333]">
                 {p.tag.replace('_', ' ')}
